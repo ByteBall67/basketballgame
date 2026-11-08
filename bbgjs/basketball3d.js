@@ -186,7 +186,10 @@ let currentChar = 'warrior'; // 'warrior' (Goku-inspired) or 'sorcerer' (Gojo-in
 let superSaiyanMode = false;
 function setSuperSaiyanAppearance(active){
   const hairColor=active?0xffd21c:0x121212;
-  for(const piece of warriorModel.userData.hairParts) piece.material.color.setHex(hairColor);
+  for(const piece of warriorModel.userData.hairParts){
+    piece.material.color.setHex(hairColor);
+    piece.children[0].material.color.setHex(active?0xb58400:0x000000);
+  }
   const aura=warriorModel.userData.aura;
   aura.material.opacity=active?0.34:0.1;
   aura.scale.setScalar(active?1.12:1);
