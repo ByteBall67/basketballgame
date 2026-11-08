@@ -182,87 +182,108 @@ function applyCharSkin(){
 }
 applyCharSkin();
 
-function makeExtra(color){
-  const g = makeBase(color);
-  const h = new THREE.Mesh(new THREE.SphereGeometry(0.29,10,10), new THREE.MeshStandardMaterial({color:0x222222}));
-  h.position.y = 1.85; h.scale.set(1,0.7,1); g.add(h);
-  return g;
-}
-let squadMode = false;
-const teammates = [makeExtra(0x14b89a), makeExtra(0x14b89a)];
-const opponents = [makeExtra(0xcc3344), makeExtra(0xcc3344)];
-const mateWander = [{x:-3.2,z:1.5,t:Math.random()*10},{x:3.2,z:1.5,t:Math.random()*10}];
-const oppWander  = [{x:-2.6,z:-9,t:Math.random()*10},{x:2.6,z:-9,t:Math.random()*10}];
-teammates.forEach((m,i)=>{ m.position.set(mateWander[i].x,0,mateWander[i].z); m.visible=false; scene.add(m); });
-opponents.forEach((m,i)=>{ m.position.set(oppWander[i].x,0,oppWander[i].z); m.visible=false; scene.add(m); });
-function setSquadMode(on){
-  squadMode = on;
-  teammates.forEach(m=>m.visible=on);
-  opponents.forEach(m=>m.visible=on);
-  showMsg(on ? 'TEAM MODE ON' : 'TEAM MODE OFF', '#66ccff');
-}
-function updateSquadVisual(dt){
-  if(!squadMode) return;
-  const anchorsM = [{x:player_x-3.2,z:player_z+2.2},{x:player_x+3.2,z:player_z+2.2}];
-  const anchorsO = [{x:def_x-2.8,z:def_z-1.8},{x:def_x+2.8,z:def_z-1.8}];
-  [mateWander,oppWander].forEach((arr,g)=>{
-    const models = g===0?teammates:opponents, anchors = g===0?anchorsM:anchorsO;
-    for(let i=0;i<2;i++){
-      const s=arr[i]; s.t+=dt;
-      const wx=anchors[i].x+Math.sin(s.t*0.6)*0.6, wz=anchors[i].z+Math.cos(s.t*0.5)*0.6;
-      const dx=wx-s.x, dz=wz-s.z, d=Math.hypot(dx,dz);
-      if(d>0.05){ const st=Math.min(d,2.2*dt); s.x+=dx/d*st; s.z+=dz/d*st; }
-      s.x=THREE.MathUtils.clamp(s.x,-COURT_W/2+0.8,COURT_W/2-0.8); s.z=THREE.MathUtils.clamp(s.z,HOOP_Z+0.5,3);
-      models[i].position.set(s.x,0,s.z);
-      models[i].rotation.y = Math.atan2(HOOP_X-s.x,(HOOP_Z-0.4)-s.z);
-    }
-  });
-}
+// ---- Domain Expansion / Super Saiyan special move + Lucky Block ----
+let domainExpansionTimer = 0;
+let superSaiyanMode = false;
+let luckyBlockCooldown = 0;
+let crosshairMode = false;
+let defenderCornerTimer = 0;
+let explosionTimer = 0;
+const defenderCornerX = COURT_W / 2 - 0.8;
+const defenderCornerZ = 2;
+const crosshairEl = document.getElementById('crosshair');
+const explosion = new THREE.Mesh(
+  new THREE.SphereGeometry(1, 16, 12),
+  new THREE.MeshBasicMaterial({color:0xff7a18, transparent:true, opacity:0.8, blending:THREE.AdditiveBlending, depthWrite:false})
+);
+explosion.visible = false;
+scene.add(explosion);
 
-// ---- special move (S): a character-themed energy blast that removes the
-// defender from the court for 10s. Replaces a literal weapon mechanic. ----
-let blastCooldown = 0, defenderStunned = false, defenderStunTimer = 0;
-let blastFx = null, blastFxT = 0;
-function tryBlast(){
-  if(blastCooldown > 0 || defenderStunned || ft) return;
-  const dist = Math.hypot(def_x-player_x, def_z-player_z);
-  if(dist > 5.5){ showMsg('Defender out of range', '#ffcc55'); return; }
-  blastCooldown = 20;
-  defenderStunned = true; defenderStunTimer = 10;
-  defender.visible = false;
-  const col = currentChar==='sorcerer' ? 0x55ccff : 0xffdd44;
-  blastFx = { from:{x:player_x,y:1.6,z:player_z}, to:{x:def_x,y:1.4,z:def_z}, color:col };
-  blastFxT = 0.25;
-  const name = currentChar==='sorcerer' ? 'GOJO BLAST!' : 'KAMEHAMEHA!';
-  showMsg(name+' Defender down for 10s!', currentChar==='sorcerer' ? '#66ccff' : '#ffdd44');
-  if(poss==='cpu'){ setPossession('player', false); }
-}
-const blastBeam = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,1,8),
-  new THREE.MeshBasicMaterial({color:0x55ccff, transparent:true, opacity:0.9}));
-blastBeam.visible = false;
-scene.add(blastBeam);
-function updateBlast(dt){
-  if(blastCooldown>0) blastCooldown=Math.max(0,blastCooldown-dt);
-  if(defenderStunned){
-    defenderStunTimer-=dt;
-    if(defenderStunTimer<=0){
-      defenderStunned=false; defender.visible=true;
-      def_x=0; def_z=HOOP_Z+4; defender.position.set(def_x,0,def_z);
+function updateCrosshair(){
+  if(!crosshairEl) return;
+  crosshairEl.style.opacity = crosshairMode ? '1' : '0';
+  if(!crosshairMode) return;
+
+  let startX, startY, startZ, velocityX, velocityY, velocityZ;
+  if(ballActive && shooter==='player'){
+    startX=bx; startY=by; startZ=bz;
+    velocityX=bvx; velocityY=bvy; velocityZ=bvz;
+  } else {
+    const dx=HOOP_X-player_x, dz=(HOOP_Z-0.4)-player_z;
+    const distance=Math.hypot(dx,dz)||1;
+    const speed=Math.max(charging?power:0,4)*SPEED_SCALE*(superSaiyanMode?1.35:1);
+    startX=player_x+facingX*0.5;
+    startY=1.55+playerY;
+    startZ=player_z+facingZ*0.5;
+    velocityX=speed*Math.cos(ANGLE)*dx/distance;
+    velocityY=speed*Math.sin(ANGLE);
+    velocityZ=speed*Math.cos(ANGLE)*dz/distance;
+  }
+
+  const hoopPlaneZ=HOOP_Z-0.4;
+  const hoopTime=(hoopPlaneZ-startZ)/velocityZ;
+  if(!Number.isFinite(hoopTime)||hoopTime<=0) return;
+  let impactTime=hoopTime;
+  let impactZ=hoopPlaneZ;
+  let impactY=startY+velocityY*impactTime-0.5*GRAVITY*impactTime*impactTime;
+  const floorDiscriminant=velocityY*velocityY+2*GRAVITY*(startY-0.16);
+  if(floorDiscriminant>=0){
+    const floorTime=(velocityY+Math.sqrt(floorDiscriminant))/GRAVITY;
+    if(floorTime>0&&floorTime<impactTime){
+      impactTime=floorTime;
+      impactZ=startZ+velocityZ*impactTime;
+      impactY=0.16;
     }
   }
-  if(blastFxT>0){
-    blastFxT-=dt;
-    const f=blastFx.from, t=blastFx.to;
-    const mx=(f.x+t.x)/2, my=(f.y+t.y)/2, mz=(f.z+t.z)/2;
-    const len=Math.hypot(t.x-f.x,t.y-f.y,t.z-f.z);
-    blastBeam.visible=true;
-    blastBeam.material.color.setHex(blastFx.color);
-    blastBeam.position.set(mx,my,mz);
-    blastBeam.scale.set(1,len,1);
-    blastBeam.lookAt(t.x,t.y,t.z);
-    blastBeam.rotateX(Math.PI/2);
-    if(blastFxT<=0){ blastFx=null; blastBeam.visible=false; }
-  } else blastBeam.visible=false;
+
+  const impact=new THREE.Vector3(
+    startX+velocityX*impactTime,
+    impactY,
+    impactZ
+  ).project(camera);
+  const screenX=THREE.MathUtils.clamp((impact.x*0.5+0.5)*innerWidth,14,innerWidth-14);
+  const screenY=THREE.MathUtils.clamp((-impact.y*0.5+0.5)*innerHeight,14,innerHeight-14);
+  crosshairEl.style.left=screenX+'px';
+  crosshairEl.style.top=screenY+'px';
+}
+
+function triggerDomainExpansion(){
+  if(ft || domainExpansionTimer > 0) return;
+  domainExpansionTimer = 8;
+  superSaiyanMode = true;
+  showMsg('DOMAIN EXPANSION! SUPER SAIYAN!', '#ffd75a');
+  if(poss==='cpu'){ setPossession('player', false); }
+}
+
+function triggerLuckyBlock(){
+  if(luckyBlockCooldown > 0) return;
+  luckyBlockCooldown = 12;
+  const roll = Math.random();
+
+  if(roll < 0.01){
+    score += 20;
+    scoreEl.textContent = score;
+    showMsg('LUCKY BLOCK! +20 POINTS', '#ffd75a');
+    return;
+  }
+
+  if(roll < 0.41){
+    explosion.position.set(def_x, 1.2, def_z);
+    explosion.scale.setScalar(0.2);
+    explosion.material.opacity = 0.8;
+    explosion.visible = true;
+    explosionTimer = 0.8;
+    def_x = defenderCornerX;
+    def_z = defenderCornerZ;
+    defender.position.set(def_x, 0, def_z);
+    defenderCornerTimer = 10;
+    showMsg('LUCKY BLOCK! SLIPPER HIT! OPPONENT DOWN FOR 10s', '#ff7d7d');
+    return;
+  }
+
+  crosshairMode = true;
+  updateCrosshair();
+  showMsg('LUCKY BLOCK! CROSSHAIR FOR THE REST OF THE GAME', '#74d4ff');
 }
 
 const defender = makeBase(0x2266ee);
@@ -438,9 +459,16 @@ function endShot(made){
 function shoot(releasePower){
   attempts++;
   shooter='player'; shotPts=ptsFor(player_x, player_z);
-  const dx = HOOP_X - player_x, dz = (HOOP_Z-0.4) - player_z;
-  const dist = Math.hypot(dx,dz);
-  const dirX = dx/dist, dirZ = dz/dist;
+  let dirX = 0, dirZ = 0;
+  if(crosshairMode){
+    const dx = HOOP_X - player_x, dz = (HOOP_Z-0.4) - player_z;
+    const dist = Math.hypot(dx,dz) || 1;
+    dirX = dx / dist; dirZ = dz / dist;
+  } else {
+    const dx = HOOP_X - player_x, dz = (HOOP_Z-0.4) - player_z;
+    const dist = Math.hypot(dx,dz);
+    dirX = dx/dist; dirZ = dz/dist;
+  }
 
   // defender contest: closer defender = more sideways deviation, and a chance of a shooting foul
   const contestDist = Math.hypot(def_x-player_x, def_z-player_z);
@@ -453,7 +481,8 @@ function shoot(releasePower){
   if(contestDist < 0.6) isFouledShot = Math.random() < 0.35;
   else if(contestDist < 1.1) isFouledShot = Math.random() < 0.15;
 
-  const speed = Math.max(releasePower,4) * SPEED_SCALE;
+  const speedBoost = superSaiyanMode ? 1.35 : 1;
+  const speed = Math.max(releasePower,4) * SPEED_SCALE * speedBoost;
   const p = ballRestPos();
   bx=p.x; by=p.y; bz=p.z; prevBy=by;
   bvx = speed*Math.cos(ANGLE)*dirX + deviation*0.4;
@@ -555,8 +584,8 @@ window.addEventListener('keydown', e=>{
   }
   if(kc(e)==='ArrowUp'){ e.preventDefault(); if(!isJumping && !ft){ isJumping=true; jumpT=0; } }
   if(kc(e)==='KeyF'){ attemptDunk(); }
-  if(kc(e)==='KeyT'){ setSquadMode(!squadMode); }
-  if(kc(e)==='KeyS'){ tryBlast(); }
+  if(kc(e)==='KeyS'){ triggerDomainExpansion(); }
+  if(kc(e)==='KeyB'){ triggerLuckyBlock(); }
   if(kc(e)==='KeyC'){ currentChar = currentChar==='sorcerer' ? 'warrior' : 'sorcerer'; applyCharSkin(); }
   if(kc(e)==='KeyL'){
     LV=LV%3+1; L=LEVELS[LV]; lvlEl.textContent=LV;
@@ -620,8 +649,29 @@ function updateFreeThrow(dt){
   }
 }
 
+function updateTimedEffects(dt){
+  if(domainExpansionTimer > 0){
+    domainExpansionTimer = Math.max(0, domainExpansionTimer - dt);
+    if(domainExpansionTimer === 0) superSaiyanMode = false;
+  }
+  luckyBlockCooldown = Math.max(0, luckyBlockCooldown - dt);
+  defenderCornerTimer = Math.max(0, defenderCornerTimer - dt);
+  if(explosionTimer > 0){
+    explosionTimer = Math.max(0, explosionTimer - dt);
+    const progress = 1 - explosionTimer / 0.8;
+    explosion.scale.setScalar(0.2 + progress * 2.8);
+    explosion.material.opacity = 0.8 * (1 - progress);
+    if(explosionTimer === 0) explosion.visible = false;
+  }
+}
+
 function updateDefender(dt){
-  if(defenderStunned) return;
+  if(defenderCornerTimer > 0){
+    def_x = defenderCornerX;
+    def_z = defenderCornerZ;
+    defender.position.set(def_x,0,def_z);
+    return;
+  }
   if(ft){ defender.position.set(def_x,0,def_z); return; }
   stealCd=Math.max(0,stealCd-dt);
   const pd=Math.hypot(def_x-player_x, def_z-player_z);
@@ -681,13 +731,13 @@ function animate(){
     powerFill.style.background = (power>=55&&power<=85) ? '#4caf50' : (power>=30&&power<=95 ? '#ffa500' : '#e05555');
   }
 
+  updateTimedEffects(dt);
   updatePlayer(dt);
   updateDefender(dt);
   updateFreeThrow(dt);
-  updateSquadVisual(dt);
-  updateBlast(dt);
   updateBall(dt);
   updateCamera();
+  updateCrosshair();
   if(sorcererModel.userData.orb) sorcererModel.userData.orb.scale.setScalar(1+0.2*Math.sin(performance.now()/200));
 
   if(msgTimer>0){ msgTimer--; if(msgTimer===0) msgEl.style.opacity=0; }
