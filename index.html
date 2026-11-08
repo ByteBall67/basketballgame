@@ -1,16 +1,200 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>My Game Arcade</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#101426">
+
+    <title>Zane Game Arcade</title>
+    <meta name="description" content="Play fun online games at Zane Game Arcade.">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #101426;
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 24px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #29304a;
+        }
+
+        .logo {
+            font-size: 25px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .logo span {
+            color: #7c8cff;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 75px 20px 55px;
+        }
+
+        .hero h1 {
+            font-size: clamp(36px, 6vw, 56px);
+            margin-bottom: 18px;
+        }
+
+        .hero h1 span {
+            color: #8292ff;
+        }
+
+        .hero p {
+            color: #aab1c8;
+            font-size: 17px;
+            line-height: 1.6;
+        }
+
+        .games {
+            max-width: 1100px;
+            margin: auto;
+            padding: 20px 25px 70px;
+        }
+
+        .section-title {
+            font-size: 25px;
+            margin-bottom: 25px;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fill, minmax(260px, 1fr));
+            gap: 25px;
+        }
+
+        .game-card {
+            background: #1b223a;
+            border: 1px solid #303a5a;
+            border-radius: 16px;
+            overflow: hidden;
+            transition: transform 0.25s, border-color 0.25s;
+        }
+
+        .game-card:hover {
+            transform: translateY(-7px);
+            border-color: #8292ff;
+        }
+
+        .game-image {
+            height: 175px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #293b72, #6945a8);
+            font-size: 75px;
+        }
+
+        .game-info {
+            padding: 22px;
+        }
+
+        .game-info h3 {
+            font-size: 21px;
+            margin-bottom: 10px;
+        }
+
+        .game-info p {
+            color: #aab1c8;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .play-button {
+            display: block;
+            text-align: center;
+            background: #7185ff;
+            color: white;
+            padding: 12px;
+            border-radius: 9px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .play-button:hover {
+            background: #536bfa;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #777f9b;
+            border-top: 1px solid #29304a;
+            font-size: 13px;
+        }
+
+    </style>
 </head>
+
 <body>
-    <h1>My Game Arcade</h1>
 
-    <h2>Choose a game</h2>
+    <header>
+        <div class="logo">🎮 My Game <span>Arcade</span></div>
+    </header>
 
-    <ul>
-        <li><a href="/bbgjs/basketball3djs.html">Basketball Game</a></li>
-    </ul>
+    <section class="hero">
+        <h1>Welcome to <span>Game Arcade!</span></h1>
+        <p>
+            Take a break, pick a game and have some fun.
+            <br>
+            More games coming soon!
+        </p>
+    </section>
+
+    <main class="games">
+
+        <h2 class="section-title">🎯 Available Games</h2>
+
+        <div class="game-grid">
+
+            <article class="game-card">
+
+                <div class="game-image">
+                    🏀
+                </div>
+
+                <div class="game-info">
+                    <h3>Basketball 3D</h3>
+
+                    <p>
+                        Test your basketball skills!
+                        Aim carefully and shoot for the hoop.
+                    </p>
+
+                    <a
+                        href="/bbgjs/basketball3djs.html"
+                        class="play-button">
+                        ▶ Play Game
+                    </a>
+                </div>
+
+            </article>
+
+        </div>
+
+    </main>
+
+    <footer>
+        © 2026 Zane Game Arcade. Have fun playing!
+    </footer>
 
 </body>
 </html>
