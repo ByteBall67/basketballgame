@@ -20,6 +20,10 @@ scene.add(sun);
 // ---------- court ----------
 const COURT_W = 15, COURT_LEN = 30;
 const HOOP_Z = -13, HOOP_X = 0, RIM_Y = 3.05, RIM_R = 0.5;
+const THREE_R = COURT_W * 23.75 / 50;
+const THREE_CORNER_X = COURT_W * 22 / 50;
+const THREE_ARC_END = Math.acos(THREE_CORNER_X / THREE_R);
+const THREE_CORNER_START_Z = HOOP_Z - 0.4 + Math.sqrt(THREE_R*THREE_R-THREE_CORNER_X*THREE_CORNER_X);
 
 const court = new THREE.Mesh(
   new THREE.PlaneGeometry(COURT_W, COURT_LEN),
@@ -65,13 +69,15 @@ courtLine(-KEY_HALF_W, KEY_Z_FRONT, KEY_HALF_W, KEY_Z_FRONT);
 })();
 // three-point arc
 (function threePtArc(){
-  const R = 6.6, pts = [];
+  const pts = [];
   for(let i=0;i<=40;i++){
-    const a = Math.PI*0.06 + (i/40)*(Math.PI*0.88);
-    const x = Math.cos(a)*R, z = (HOOP_Z-0.4) + Math.sin(a)*R;
+    const a = THREE_ARC_END + (i/40)*(Math.PI-2*THREE_ARC_END);
+    const x = Math.cos(a)*THREE_R, z = (HOOP_Z-0.4) + Math.sin(a)*THREE_R;
     if(Math.abs(x) <= COURT_W/2-0.3) pts.push(new THREE.Vector3(x,0.01,z));
   }
   scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
+  courtLine(-THREE_CORNER_X, THREE_CORNER_START_Z, -THREE_CORNER_X, 3);
+  courtLine(THREE_CORNER_X, THREE_CORNER_START_Z, THREE_CORNER_X, 3);
 })();
 // center court logo ring
 (function logoRing(){
@@ -81,6 +87,88 @@ courtLine(-KEY_HALF_W, KEY_Z_FRONT, KEY_HALF_W, KEY_Z_FRONT);
   ring.position.set(0, 0.012, -COURT_LEN/2+3);
   scene.add(ring);
 })();
+
+const audienceFans=[];
+const audienceCount=2*3*11;
+const audienceBodyMesh=new THREE.InstancedMesh(
+  new THREE.CylinderGeometry(0.25,0.32,0.68,6),
+  new THREE.MeshStandardMaterial({color:0xffffff}), audienceCount
+);
+const audienceHeadMesh=new THREE.InstancedMesh(
+  new THREE.SphereGeometry(0.19,8,6),
+  new THREE.MeshStandardMaterial({color:0xe6b58a}), audienceCount
+);
+const audienceArmMesh=new THREE.InstancedMesh(
+  new THREE.CylinderGeometry(0.065,0.08,0.45,6),
+  new THREE.MeshStandardMaterial({color:0xffffff}), audienceCount*2
+);
+const audienceSeatGeometry=new THREE.BoxGeometry(0.85,0.24,COURT_LEN);
+const audienceSeatMaterial=new THREE.MeshStandardMaterial({color:0x344254});
+const audienceTransform=new THREE.Object3D();
+const shirtColors=[0x2874a6,0xc0392b,0xf1c40f,0x2e8b57,0xe67e22,0x8e44ad];
+for(const side of [-1,1]){
+  for(let row=0;row<3;row++){
+    const rowX=side*(COURT_W/2+0.55+row*0.72);
+    const seat=new THREE.Mesh(audienceSeatGeometry,audienceSeatMaterial);
+    seat.position.set(rowX,0.12+row*0.34,-COURT_LEN/2+3);
+    scene.add(seat);
+    for(let column=0;column<11;column++){
+      const index=audienceFans.length;
+      const fan={x:rowX,y:0.22+row*0.34,z:-25+column*2.4,side,phase:Math.random()*Math.PI*2,index};
+      audienceFans.push(fan);
+      audienceTransform.position.set(fan.x,fan.y+0.48,fan.z);
+      audienceTransform.rotation.set(0,0,0);
+      audienceTransform.scale.set(1,1,1);
+      audienceTransform.updateMatrix();
+      audienceBodyMesh.setMatrixAt(index,audienceTransform.matrix);
+      audienceTransform.position.set(fan.x,fan.y+0.94,fan.z);
+      audienceTransform.updateMatrix();
+      audienceHeadMesh.setMatrixAt(index,audienceTransform.matrix);
+      const color=new THREE.Color(shirtColors[column%shirtColors.length]);
+      audienceBodyMesh.setColorAt(index,color);
+      for(let arm=0;arm<2;arm++){
+        const armSide=arm===0?-1:1;
+        audienceTransform.position.set(fan.x+armSide*0.29,fan.y+0.76,fan.z);
+        audienceTransform.rotation.set(0,0,armSide*-1.35);
+        audienceTransform.updateMatrix();
+        audienceArmMesh.setMatrixAt(index*2+arm,audienceTransform.matrix);
+        audienceArmMesh.setColorAt(index*2+arm,color);
+      }
+    }
+  }
+}
+audienceBodyMesh.instanceMatrix.needsUpdate=true;
+audienceHeadMesh.instanceMatrix.needsUpdate=true;
+audienceArmMesh.instanceMatrix.needsUpdate=true;
+if(audienceBodyMesh.instanceColor) audienceBodyMesh.instanceColor.needsUpdate=true;
+if(audienceArmMesh.instanceColor) audienceArmMesh.instanceColor.needsUpdate=true;
+scene.add(audienceBodyMesh,audienceHeadMesh,audienceArmMesh);
+let audienceCheerTimer=0;
+function cheerAudience(){ audienceCheerTimer=2.5; }
+function updateAudience(dt){
+  if(audienceCheerTimer<=0) return;
+  audienceCheerTimer=Math.max(0,audienceCheerTimer-dt);
+  const cheering=audienceCheerTimer>0;
+  const time=performance.now()*0.018;
+  for(const fan of audienceFans){
+    const wave=Math.sin(time+fan.phase);
+    audienceTransform.position.set(fan.x,fan.y+0.48+(cheering?Math.max(0,wave)*0.12:0),fan.z);
+    audienceTransform.rotation.set(0,0,0);
+    audienceTransform.scale.set(1,1,1);
+    audienceTransform.updateMatrix();
+    audienceBodyMesh.setMatrixAt(fan.index,audienceTransform.matrix);
+    for(let arm=0;arm<2;arm++){
+      const armSide=arm===0?-1:1;
+      const angle=cheering?armSide*(-0.55+wave*0.25):armSide*-1.35;
+      audienceTransform.position.set(fan.x+armSide*0.29,fan.y+0.76,fan.z);
+      audienceTransform.rotation.set(0,0,angle);
+      audienceTransform.updateMatrix();
+      audienceArmMesh.setMatrixAt(fan.index*2+arm,audienceTransform.matrix);
+    }
+  }
+  audienceBodyMesh.instanceMatrix.needsUpdate=true;
+  audienceArmMesh.instanceMatrix.needsUpdate=true;
+}
 
 // ---------- hoop ----------
 const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,3.4,10),
@@ -348,7 +436,6 @@ const LEVELS={
 let LV=1, L=LEVELS[1];
 let poss='player', cpuScore=0, shooter='player', shotPts=2, cpuTimer=3, stealCd=0;
 let cpuSpot={x:0,z:-6};
-const THREE_R = 6.6; // matches the drawn three-point arc
 const lvlEl=document.getElementById('lvl');
 const cpuScoreEl=document.getElementById('cpuScore'), possEl=document.getElementById('poss');
 
@@ -359,7 +446,11 @@ let ft = null; // {team, remaining, total}
 let ftTimer = 0;
 const foulsYouEl=document.getElementById('foulsYou'), foulsCpuEl=document.getElementById('foulsCpu');
 
-function ptsFor(x,z){ return Math.hypot(x-HOOP_X, z-(HOOP_Z-0.4)) > THREE_R ? 3 : 2; }
+function ptsFor(x,z){
+  const dx=Math.abs(x-HOOP_X), dz=z-(HOOP_Z-0.4);
+  const inCorner=dx>=THREE_CORNER_X&&z>=THREE_CORNER_START_Z;
+  return Math.hypot(dx,dz)>THREE_R||inCorner ? 3 : 2;
+}
 function faceHoop(){
   facingX = HOOP_X-player_x; facingZ = (HOOP_Z-0.4)-player_z;
   const l=Math.hypot(facingX,facingZ)||1; facingX/=l; facingZ/=l;
@@ -430,6 +521,7 @@ function cpuFreeThrowShoot(){
 }
 
 function ballResult(made){
+  if(made) cheerAudience();
   if(ft){ resolveFreeThrow(made); return; }
   endShot(made);
 }
@@ -522,6 +614,7 @@ function attemptDunk(){
     setPossession('cpu', true);
   } else {
     score+=2; scoreEl.textContent = score;
+    cheerAudience();
     if(fouled){
       fouls.cpu++; updateFoulHud();
       showMsg(name+' DUNK + FOUL! +2', currentChar==='sorcerer' ? '#66aaff' : '#ffaa22');
@@ -729,6 +822,7 @@ function animate(){
   updateDefender(dt);
   updateFreeThrow(dt);
   updateBall(dt);
+  updateAudience(dt);
   updateCamera();
   updateCrosshair();
   if(sorcererModel.userData.orb) sorcererModel.userData.orb.scale.setScalar(1+0.2*Math.sin(performance.now()/200));
