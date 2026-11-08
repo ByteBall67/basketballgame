@@ -158,13 +158,21 @@ function makeWarriorSkin(){
   g.add(part(new THREE.CylinderGeometry(0.2,0.26,0.16,12),B,0,1.5,0));
   for(const sx of [-1,1]) g.add(part(new THREE.CylinderGeometry(0.09,0.09,0.12,8),B,sx*0.45,0.73,0));
   const H=0x121212;
+  const hairParts=[];
+  function addHairSpike(r,h,x,y,z,tx,tz){
+    const piece=spike(H,r,h,x,y,z,tx,tz);
+    hairParts.push(piece);
+    g.add(piece);
+  }
   for(let i=0;i<8;i++){ const a=(i/8)*Math.PI*2;
-    g.add(spike(H,0.12,0.5+Math.random()*0.15,Math.cos(a)*0.2,2.12,Math.sin(a)*0.2,-Math.cos(a)*0.6,Math.sin(a)*0.6)); }
-  g.add(spike(H,0.11,0.5,0,2.25,0,0,0));
-  for(const bx of [-0.15,0.15]) g.add(spike(H,0.07,0.28,bx,2.02,0.3,0,0.8));
+    addHairSpike(0.12,0.5+Math.random()*0.15,Math.cos(a)*0.2,2.12,Math.sin(a)*0.2,-Math.cos(a)*0.6,Math.sin(a)*0.6); }
+  addHairSpike(0.11,0.5,0,2.25,0,0,0);
+  for(const bx of [-0.15,0.15]) addHairSpike(0.07,0.28,bx,2.02,0.3,0,0.8);
   const aura=new THREE.Mesh(new THREE.SphereGeometry(0.95,16,16),
     new THREE.MeshBasicMaterial({color:0xffdd44,transparent:true,opacity:0.1}));
   aura.position.y=1.1; g.add(aura);
+  g.userData.hairParts=hairParts;
+  g.userData.aura=aura;
   return g;
 }
 
@@ -175,16 +183,25 @@ player.add(sorcererModel, warriorModel);
 scene.add(player);
 
 let currentChar = 'warrior'; // 'warrior' (Goku-inspired) or 'sorcerer' (Gojo-inspired)
+let superSaiyanMode = false;
+function setSuperSaiyanAppearance(active){
+  const hairColor=active?0xffd21c:0x121212;
+  for(const piece of warriorModel.userData.hairParts) piece.material.color.setHex(hairColor);
+  const aura=warriorModel.userData.aura;
+  aura.material.opacity=active?0.34:0.1;
+  aura.scale.setScalar(active?1.12:1);
+  aura.visible=currentChar==='warrior';
+}
 function applyCharSkin(){
   sorcererModel.visible = currentChar === 'sorcerer';
   warriorModel.visible = currentChar === 'warrior';
+  setSuperSaiyanAppearance(currentChar==='warrior'&&superSaiyanMode);
   document.getElementById('charName').textContent = currentChar === 'sorcerer' ? 'Gojo' : 'Goku';
 }
 applyCharSkin();
 
 // ---- Domain Expansion / Super Saiyan special move + Lucky Block ----
 let domainExpansionTimer = 0;
-let superSaiyanMode = false;
 let luckyBlockCooldown = 0;
 let crosshairMode = false;
 let defenderCornerTimer = 0;
@@ -251,6 +268,7 @@ function triggerDomainExpansion(){
   if(ft || domainExpansionTimer > 0) return;
   domainExpansionTimer = 8;
   superSaiyanMode = true;
+  setSuperSaiyanAppearance(currentChar==='warrior');
   showMsg('DOMAIN EXPANSION! SUPER SAIYAN!', '#ffd75a');
   if(poss==='cpu'){ setPossession('player', false); }
 }
@@ -652,7 +670,10 @@ function updateFreeThrow(dt){
 function updateTimedEffects(dt){
   if(domainExpansionTimer > 0){
     domainExpansionTimer = Math.max(0, domainExpansionTimer - dt);
-    if(domainExpansionTimer === 0) superSaiyanMode = false;
+    if(domainExpansionTimer === 0){
+      superSaiyanMode = false;
+      setSuperSaiyanAppearance(false);
+    }
   }
   luckyBlockCooldown = Math.max(0, luckyBlockCooldown - dt);
   defenderCornerTimer = Math.max(0, defenderCornerTimer - dt);
@@ -739,6 +760,11 @@ function animate(){
   updateCamera();
   updateCrosshair();
   if(sorcererModel.userData.orb) sorcererModel.userData.orb.scale.setScalar(1+0.2*Math.sin(performance.now()/200));
+  if(superSaiyanMode&&currentChar==='warrior'){
+    const pulse=0.5+0.5*Math.sin(performance.now()/90);
+    warriorModel.userData.aura.material.opacity=0.25+pulse*0.16;
+    warriorModel.userData.aura.scale.setScalar(1.08+pulse*0.12);
+  }
 
   if(msgTimer>0){ msgTimer--; if(msgTimer===0) msgEl.style.opacity=0; }
 
