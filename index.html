@@ -133,6 +133,51 @@
             background: #536bfa;
         }
 
+        .arcade-link {
+            margin-top: 32px;
+            padding: 22px 26px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            background: #172f36;
+            border: 1px solid #32616a;
+            border-radius: 12px;
+        }
+
+        .arcade-link h2 {
+            font-size: 19px;
+            margin-bottom: 6px;
+        }
+
+        .arcade-link p {
+            color: #b7c8cb;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .arcade-link a {
+            flex-shrink: 0;
+            color: #101426;
+            background: #8bd1c7;
+            padding: 11px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .arcade-link a:hover {
+            background: #a8e3da;
+        }
+
+        @media (max-width: 560px) {
+            .arcade-link {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+
         footer {
             text-align: center;
             padding: 25px;
@@ -189,6 +234,16 @@
             </article>
 
         </div>
+
+        <aside class="arcade-link" aria-labelledby="tennis-arcade-title">
+            <div>
+                <h2 id="tennis-arcade-title">More games to explore</h2>
+                <p>Visit our separate site to play Court Rally tennis.</p>
+            </div>
+            <a href="https://tennisgame-3ff.pages.dev/">
+                Tennis Arcade ↗
+            </a>
+        </aside>
 
     </main>
 
