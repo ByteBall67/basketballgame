@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#10251e">
+    <meta name="description" content="Play Soccer Showdown, a quick 1v1 soccer game against a bot.">
+    <title>Soccer Showdown | Zane Game Arcade</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="game.js" defer></script>
+</head>
+<body>
+    <main class="page">
+        <a class="back-link" href="../index.html">← Back to Zane Game Arcade</a>
+
+        <header class="heading">
+            <p class="eyebrow">ZANE GAME ARCADE PRESENTS</p>
+            <h1>Soccer <span>Showdown</span></h1>
+            <p class="tagline">A quick 1v1 match against the bot. First to 5 wins.</p>
+        </header>
+
+        <section class="game-panel" aria-label="Soccer Showdown game">
+            <div class="scoreboard" aria-label="Score">
+                <div class="score">
+                    <span class="score-label">YOU</span>
+                    <span id="player-score" class="score-value">0</span>
+                </div>
+                <div class="match-label">FIRST TO 5</div>
+                <div class="score score--opponent">
+                    <span class="score-label">BOT</span>
+                    <span id="bot-score" class="score-value score-value--bot">0</span>
+                </div>
+            </div>
+
+            <canvas id="pitch" width="900" height="560" tabindex="0"
+                aria-label="Soccer pitch. Move with the arrow keys, press Space near the ball to shoot, and press Alt near the bot to steal.">
+                Your browser does not support the canvas element.
+            </canvas>
+
+            <div class="game-controls">
+                <p id="game-status" class="game-status" aria-live="polite">
+                    Arrows to move. Hold Space to charge, release to shoot. Alt near the bot to steal.
+                </p>
+                <div class="power-meter">
+                    <div class="power-meter-labels">
+                        <span>SHOT POWER</span>
+                        <span id="power-value">0%</span>
+                    </div>
+                    <div id="power-track" class="power-track" role="progressbar"
+                        aria-label="Shot power" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div id="power-fill" class="power-fill"></div>
+                    </div>
+                </div>
+                <div class="game-actions">
+                    <label class="level-picker" for="level-select">
+                        LEVEL
+                        <select id="level-select" aria-label="Bot difficulty level">
+                            <option value="1">1 · Beginner</option>
+                            <option value="2">2 · Rookie</option>
+                            <option value="3">3 · Pro</option>
+                            <option value="4">4 · Expert</option>
+                            <option value="5">5 · Elite</option>
+                        </select>
+                    </label>
+                    <button id="start-button" class="start-button" type="button">Start match</button>
+                </div>
+            </div>
+        </section>
+
+        <p class="help-text">Move with ↑ ↓ ← →. Hold Space to charge your shot, then release near the ball. Press Alt near the bot to steal.</p>
+    </main>
+</body>
+</html>
