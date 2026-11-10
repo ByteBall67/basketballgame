@@ -30,7 +30,7 @@
         { speed: 2.2, reaction: 0.64, stealChance: 0.3 },
         { speed: 2.7, reaction: 0.78, stealChance: 0.45 },
         { speed: 3.2, reaction: 0.9, stealChance: 0.65 },
-        { speed: 3.6, reaction: 1, stealChance: 0.82 }
+        { speed: 4.6, reaction: 1, stealChance: 0.82 }
     ];
     let playerScore = 0;
     let botScore = 0;
