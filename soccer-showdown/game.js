@@ -38,6 +38,7 @@
     let playing = false;
     let finished = false;
     let playerKickCooldown = 0;
+    let playerDribbleCooldown = 0;
     let botKickCooldown = 0;
     let playerStealCooldown = 0;
     let botStealCooldown = 0;
@@ -69,6 +70,7 @@
         ball.vx = 0;
         ball.vy = 0;
         playerKickCooldown = 0;
+        playerDribbleCooldown = 0;
         botKickCooldown = 0;
         playerStealCooldown = 0;
         botStealCooldown = 0;
@@ -88,7 +90,7 @@
         resetPositions();
         playing = true;
         startButton.hidden = true;
-        statusElement.textContent = `Level ${level}: move with arrows, hold Space to charge and shoot, Alt near the bot to steal.`;
+        statusElement.textContent = `Level ${level}: move with arrows, press D near the ball to dribble, hold Space to charge a shot, and press Alt near the bot to steal.`;
         canvas.focus();
     }
 
@@ -200,6 +202,23 @@
         statusElement.textContent = "Get close to the bot and the ball to steal.";
     }
 
+    function attemptPlayerDribble() {
+        if (!playing || playerDribbleCooldown > 0) {
+            return;
+        }
+
+        const distance = Math.hypot(ball.x - player.x, ball.y - player.y);
+        if (distance > playerRadius + ballRadius + 20) {
+            statusElement.textContent = "Get close to the ball before dribbling.";
+            return;
+        }
+
+        if (kick(player, 0, 0, 3.2, player.dx, player.dy)) {
+            playerDribbleCooldown = 12;
+            statusElement.textContent = "Dribble! Keep moving to guide the ball.";
+        }
+    }
+
     function tryBotSteal(difficulty) {
         const playerDistance = Math.hypot(bot.x - player.x, bot.y - player.y);
         const ballDistance = Math.hypot(ball.x - player.x, ball.y - player.y);
@@ -226,13 +245,14 @@
         }
 
         playerKickCooldown = Math.max(0, playerKickCooldown - step);
+        playerDribbleCooldown = Math.max(0, playerDribbleCooldown - step);
         botKickCooldown = Math.max(0, botKickCooldown - step);
         playerStealCooldown = Math.max(0, playerStealCooldown - step);
         botStealCooldown = Math.max(0, botStealCooldown - step);
         let moveX = 0;
         let moveY = 0;
         if (keys.has("ArrowLeft") || keys.has("a")) moveX -= 1;
-        if (keys.has("ArrowRight") || keys.has("d")) moveX += 1;
+        if (keys.has("ArrowRight")) moveX += 1;
         if (keys.has("ArrowUp") || keys.has("w")) moveY -= 1;
         if (keys.has("ArrowDown") || keys.has("s")) moveY += 1;
         moveEntity(player, moveX, moveY, 4.3, step);
@@ -379,6 +399,10 @@
         }
         if (key === "Alt" && !event.repeat) {
             attemptPlayerSteal();
+        }
+        if (key === "d" && !event.repeat) {
+            attemptPlayerDribble();
+            return;
         }
         if (key === " ") {
             if (!playing && !finished) {

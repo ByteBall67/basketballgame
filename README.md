@@ -16,4 +16,4 @@ https://basketballgame-b9b.pages.dev/
 ## Local use
 
 Open `index.html` in a browser, or open `soccer-showdown/index.html` to play Soccer Showdown.
-Choose one of five bot levels, move with the arrow keys, hold and release Space to charge and shoot, and press Alt near the bot to try a steal.
+Choose one of five bot levels, move with the arrow keys, press D near the ball to dribble in your facing direction, hold and release Space to charge and shoot, and press Alt near the bot to try a steal.
