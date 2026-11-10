@@ -26,11 +26,11 @@
     const ball = { x: width / 2, y: height / 2, vx: 0, vy: 0 };
     const winningScore = 5;
     const levels = [
-        { speed: 2.35, reaction: 0.5, stealChance: 0.15 },
-        { speed: 2.9, reaction: 0.64, stealChance: 0.3 },
-        { speed: 3.5, reaction: 0.78, stealChance: 0.45 },
-        { speed: 4.1, reaction: 0.9, stealChance: 0.65 },
-        { speed: 4.6, reaction: 1, stealChance: 0.82 }
+        { speed: 1.8, reaction: 0.5, stealChance: 0.15 },
+        { speed: 2.2, reaction: 0.64, stealChance: 0.3 },
+        { speed: 2.7, reaction: 0.78, stealChance: 0.45 },
+        { speed: 3.2, reaction: 0.9, stealChance: 0.65 },
+        { speed: 3.6, reaction: 1, stealChance: 0.82 }
     ];
     let playerScore = 0;
     let botScore = 0;
