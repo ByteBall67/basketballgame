@@ -38,11 +38,11 @@
     let playing = false;
     let finished = false;
     let playerKickCooldown = 0;
-    let playerDribbleCooldown = 0;
     let botKickCooldown = 0;
     let playerStealCooldown = 0;
     let botStealCooldown = 0;
     let chargingShot = false;
+    let dribbling = false;
     let chargeStartedAt = 0;
     let shotCharge = 0;
     let previousTime = 0;
@@ -70,7 +70,8 @@
         ball.vx = 0;
         ball.vy = 0;
         playerKickCooldown = 0;
-        playerDribbleCooldown = 0;
+        dribbling = false;
+        keys.delete("d");
         botKickCooldown = 0;
         playerStealCooldown = 0;
         botStealCooldown = 0;
@@ -90,7 +91,7 @@
         resetPositions();
         playing = true;
         startButton.hidden = true;
-        statusElement.textContent = `Level ${level}: move with arrows, press D near the ball to dribble, hold Space to charge a shot, and press Alt near the bot to steal.`;
+        statusElement.textContent = `Level ${level}: move with arrows. Hold D near the ball to dribble, hold Space to charge a shot, and press Alt near the bot to steal.`;
         canvas.focus();
     }
 
@@ -202,21 +203,16 @@
         statusElement.textContent = "Get close to the bot and the ball to steal.";
     }
 
-    function attemptPlayerDribble() {
-        if (!playing || playerDribbleCooldown > 0) {
+    function startPlayerDribbling() {
+        if (!playing) {
             return;
         }
 
         const distance = Math.hypot(ball.x - player.x, ball.y - player.y);
         if (distance > playerRadius + ballRadius + 20) {
-            statusElement.textContent = "Get close to the ball before dribbling.";
-            return;
+            statusElement.textContent = "Move close to the ball while holding D to dribble.";
         }
-
-        if (kick(player, 0, 0, 3.2, player.dx, player.dy)) {
-            playerDribbleCooldown = 12;
-            statusElement.textContent = "Dribble! Keep moving to guide the ball.";
-        }
+        dribbling = true;
     }
 
     function tryBotSteal(difficulty) {
@@ -230,6 +226,7 @@
         ) {
             const stolen = kick(bot, field.left - 80, bot.y + (height / 2 - bot.y) * 0.25, 6.8);
             if (stolen) {
+                dribbling = false;
                 botStealCooldown = 42;
                 statusElement.textContent = "The bot stole the ball! Get it back.";
                 return true;
@@ -245,7 +242,6 @@
         }
 
         playerKickCooldown = Math.max(0, playerKickCooldown - step);
-        playerDribbleCooldown = Math.max(0, playerDribbleCooldown - step);
         botKickCooldown = Math.max(0, botKickCooldown - step);
         playerStealCooldown = Math.max(0, playerStealCooldown - step);
         botStealCooldown = Math.max(0, botStealCooldown - step);
@@ -281,6 +277,17 @@
                 if (kick(bot, field.left - 10, height / 2 + (Math.random() - 0.5) * (120 - level * 14), 5.8 + level * 0.18)) {
                     botKickCooldown = 28;
                 }
+            }
+        }
+
+        if (dribbling && !chargingShot) {
+            const distance = Math.hypot(ball.x - player.x, ball.y - player.y);
+            if (distance <= playerRadius + ballRadius + 20) {
+                const ballOffset = playerRadius + ballRadius - 2;
+                ball.x = player.x + player.dx * ballOffset;
+                ball.y = player.y + player.dy * ballOffset;
+                ball.vx = 0;
+                ball.vy = 0;
             }
         }
 
@@ -398,16 +405,21 @@
             event.preventDefault();
         }
         if (key === "Alt" && !event.repeat) {
+            dribbling = false;
             attemptPlayerSteal();
         }
-        if (key === "d" && !event.repeat) {
-            attemptPlayerDribble();
+        if (key === "d") {
+            if (!event.repeat) {
+                startPlayerDribbling();
+            }
+            keys.add(key);
             return;
         }
         if (key === " ") {
             if (!playing && !finished) {
                 startMatch();
             } else if (playing && !event.repeat && playerKickCooldown <= 0) {
+                dribbling = false;
                 chargingShot = true;
                 chargeStartedAt = Date.now();
                 shotCharge = 0;
@@ -423,9 +435,13 @@
         if (key === " ") {
             releaseShot();
         }
+        if (key === "d") {
+            dribbling = false;
+        }
     });
     window.addEventListener("blur", () => {
         keys.clear();
+        dribbling = false;
         releaseShot();
     });
     startButton.addEventListener("click", startMatch);
